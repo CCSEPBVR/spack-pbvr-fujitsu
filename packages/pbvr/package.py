@@ -69,10 +69,15 @@ class Pbvr(Package):
     patch("kvs-extended-fileformat-conf.patch", when="+extended_fileformat")
     patch("kvs-client-conf.patch", when="+client~extended_fileformat")
     patch("kvs-client-extended-fileformat-conf.patch", when="+client+extended_fileformat")
-    patch("pbvr-conf.patch", when="~mpi")
-    patch("pbvr-conf-mpi.patch", when="+mpi")
-    patch("makefile-machime-gcc-omp.patch", when="~mpi")
-    patch("makefile-machime-gcc-mpi-omp.patch", when="+mpi")
+
+    patch("pbvr-fujitsu-conf.patch", when="~mpi%fj")
+    patch("pbvr-fujitsu-conf-mpi.patch", when="+mpi%fj")
+    patch("makefile-machime-fujitsu-omp.patch", when="~mpi%fj")
+    patch("makefile-machime-tujistu-mpi-omp.patch", when="+mpi%fj")
+    patch("pbvr-conf.patch", when="~mpi%gcc")
+    patch("pbvr-conf-mpi.patch", when="+mpi%gcc")
+    patch("makefile-machime-gcc-omp.patch", when="~mpi%gcc")
+    patch("makefile-machime-gcc-mpi-omp.patch", when="+mpi%gcc")
 
     def patch(self):
         source_dir = self.stage.source_path

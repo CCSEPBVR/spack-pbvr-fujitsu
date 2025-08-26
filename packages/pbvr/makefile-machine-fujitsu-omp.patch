@@ -1,0 +1,18 @@
+--- a/CS_server/arch/Makefile_machine_fujitsu_omp	2025-08-26 13:23:27.000000000 +0900
++++ b/CS_server/arch/Makefile_machine_fujitsu_omp	2025-08-26 13:25:33.000000000 +0900
+@@ -1,9 +1,9 @@
+-CXX	= FCCpx
+-CXXFLAGS= -Kfast,openmp -Xg -std=c++17
++CXX	= FCC
++CXXFLAGS= -Kfast -Kopenmp -Nclang -std=c++17
+ 
+-CC	= fccpx
+-CCFLAGS = -Kfast,openmp -Xg -std=c++17
++CC	= fcc
++CCFLAGS = -Kfast -Kopenmp -Nclang -std=c++17
+ 
+-LD	= FCCpx
+-LDFLAGS	= -Kfast,openmp -Xg -std=c++17
++LD	= FCC
++LDFLAGS	= -lstdc++
+ 
