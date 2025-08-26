@@ -1,0 +1,8 @@
+--- a/CS_server/arch/Makefile_machine_gcc_omp   2025-08-26 12:07:02.000000000 +0900
++++ b/CS_server/arch/Makefile_machine_gcc_omp   2025-08-26 12:07:16.000000000 +0900
+@@ -3,4 +3,4 @@
+ CC=gcc
+ CCFLAGS=-O3 -fopenmp -march=native -fcommon
+ LD=g++
+-LDFLAGS=-fopenmp -lstdc++ -static-libgcc -static-libstdc++
++LDFLAGS=-fopenmp -lstdc++ -static-libgcc

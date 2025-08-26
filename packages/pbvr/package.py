@@ -52,7 +52,7 @@ class Pbvr(Package):
 
     license("LGPL-3.0-only")
 
-    version("3.5.0", sha256="4edbe420304b9436ab88829c0ff8465b27e10b26293288d5db3c84c3236e699c")
+    version("3.5.0", sha256="264c82d9e94b6f8477952ce2f80834332dbc9047db694f7f3ba2ab07c7c92aae")
 
     variant("client", default=True, description="Build Client Program")
     variant("mpi", default=True, description="Enable MPI Support")
@@ -63,9 +63,16 @@ class Pbvr(Package):
     depends_on("qt-svg-pbvr@6.2.4+widgets", when="+client")
     depends_on("vtk@9.3.1~mpi", when="~mpi")
     depends_on("vtk@9.3.1+mpi", when="+mpi")
+    depends_on("freeglut")
 
+    patch("kvs-conf.patch", when="~extended_fileformat")
+    patch("kvs-extended-fileformat-conf.patch", when="+extended_fileformat")
+    patch("kvs-client-conf.patch", when="+client~extended_fileformat")
+    patch("kvs-client-extended-fileformat-conf.patch", when="+client+extended_fileformat")
     patch("pbvr-conf.patch", when="~mpi")
     patch("pbvr-conf-mpi.patch", when="+mpi")
+    patch("makefile-machime-gcc-omp.patch", when="~mpi")
+    patch("makefile-machime-gcc-mpi-omp.patch", when="+mpi")
 
     def patch(self):
         source_dir = self.stage.source_path
@@ -133,8 +140,9 @@ class Pbvr(Package):
         install("CS_server/pbvr_server", prefix.bin)
         install("CS_server/Filter/pbvr_filter", prefix.bin)
         install("CS_server/KVSMLConverter/Example/Release/kvsml-converter", prefix.bin)
-        install("Client/build/App/pbvr_client", prefix.bin)
 
-        src = self.stage.source_path
-        install_tree(os.path.join(src, "Client/App/Shader"), os.path.join(prefix.bin, "Shader"))
-        install_tree(os.path.join(src, "Client/App/Font"), os.path.join(prefix.bin, "Font"))
+        if "+client" in spec:
+            install("Client/build/App/pbvr_client", prefix.bin)
+            src = self.stage.source_path
+            install_tree(os.path.join(src, "Client/App/Shader"), os.path.join(prefix.bin, "Shader"))
+            install_tree(os.path.join(src, "Client/App/Font"), os.path.join(prefix.bin, "Font"))

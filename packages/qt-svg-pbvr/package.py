@@ -13,8 +13,8 @@ class QtSvgPbvr(QtPackage):
     two-dimensional vector graphics. Qt provides classes for rendering and
     displaying SVG drawings in widgets and on other paint devices."""
 
-    url = QtPackage.get_url(__qualname__)
-    list_url = QtPackage.get_list_url(__qualname__)
+    url = QtPackage.get_url("qtsvg")
+    list_url = QtPackage.get_list_url("qtsvg")
 
     version("6.6.0", sha256="4fd6b4d9307c3cd8fd207e60334823fed07a9acb32f7d53cd9c9be9b6a2f8a30")
     version("6.5.3", sha256="fb8e5574c2480aab78062fad2d0a521633b4591ada600130b918b703c2ddb09a")
