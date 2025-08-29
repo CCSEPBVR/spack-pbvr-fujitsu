@@ -59,25 +59,25 @@ class Pbvr(Package):
     variant("extended_fileformat", default=True, description="Enable extended fileformat")
 
     depends_on("mpi", when="+mpi")
-    depends_on("qt-base@6.2.4+opengl", when="+client")
-    depends_on("qt-svg-pbvr@6.2.4+widgets", when="+client")
-    depends_on("vtk@9.3.1~mpi", when="~mpi")
-    depends_on("vtk@9.3.1+mpi", when="+mpi")
-    depends_on("freeglut")
+    depends_on("qt-base@6.2.4+opengl", when="+client%gcc")
+    depends_on("qt-svg-pbvr@6.2.4+widgets", when="+client%gcc")
+    depends_on("vtk@9.3.1~mpi", when="~mpi%gcc")
+    depends_on("vtk@9.3.1+mpi", when="+mpi%gcc")
+    depends_on("freeglut", when="+client%gcc")
 
-    patch("kvs-conf.patch", when="~extended_fileformat")
-    patch("kvs-extended-fileformat-conf.patch", when="+extended_fileformat")
-    patch("kvs-client-conf.patch", when="+client~extended_fileformat")
-    patch("kvs-client-extended-fileformat-conf.patch", when="+client+extended_fileformat")
+    patch("kvs-conf.patch", when="~client~extended_fileformat%gcc")
+    patch("kvs-extended-fileformat-conf.patch", when="~client+extended_fileformat%gcc")
+    patch("kvs-client-conf.patch", when="+client~extended_fileformat%gcc")
+    patch("kvs-client-extended-fileformat-conf.patch", when="+client+extended_fileformat%gcc")
 
     patch("pbvr-fujitsu-conf.patch", when="~mpi%fj")
     patch("pbvr-fujitsu-conf-mpi.patch", when="+mpi%fj")
-    patch("makefile-machime-fujitsu-omp.patch", when="~mpi%fj")
-    patch("makefile-machime-tujistu-mpi-omp.patch", when="+mpi%fj")
+    patch("makefile-machine-fujitsu-omp.patch", when="~mpi%fj")
+    patch("makefile-machine-fujitsu-mpi-omp.patch", when="+mpi%fj")
     patch("pbvr-conf.patch", when="~mpi%gcc")
     patch("pbvr-conf-mpi.patch", when="+mpi%gcc")
-    patch("makefile-machime-gcc-omp.patch", when="~mpi%gcc")
-    patch("makefile-machime-gcc-mpi-omp.patch", when="+mpi%gcc")
+    patch("makefile-machine-gcc-omp.patch", when="~mpi%gcc")
+    patch("makefile-machine-gcc-mpi-omp.patch", when="+mpi%gcc")
 
     def patch(self):
         source_dir = self.stage.source_path
@@ -115,39 +115,64 @@ class Pbvr(Package):
                     "https://github.com/CCSEPBVR/CS-IS-PBVR/wiki/BuildforLinux_JP"
                 )
 
-        with set_env(
-            KVS_CPP="g++",
-            SPACK_KVS_DIR=prefix,
-            VTK_VERSION="9.3",
-            VTK_INCLUDE_PATH=str(spec["vtk"].prefix.include) + "/vtk-9.3",
-            VTK_LIB_PATH=str(spec["vtk"].prefix.lib),
-        ):
+        if spec.compiler.name != "fj":
             # Build KVS
-            build_dir = join_path(self.stage.source_path, "KVS")
-            with working_dir(build_dir):
-                make()
-                make("install")
+            if "+extended_fileformat" in spec:
+                with set_env(
+                    KVS_CPP="g++",
+                    SPACK_KVS_DIR=prefix,
+                    VTK_VERSION="9.3",
+                    VTK_INCLUDE_PATH=str(spec["vtk"].prefix.include) + "/vtk-9.3",
+                    VTK_LIB_PATH=str(spec["vtk"].prefix.lib),
+                ):
+                    build_dir = join_path(self.stage.source_path, "KVS")
+                    with working_dir(build_dir):
+                        make()
+                        make("install")
+            else:
+                if "+client" in spec:
+                    with set_env(
+                        KVS_CPP="g++",
+                        SPACK_KVS_DIR=prefix,
+                    ):
+                        build_dir = join_path(self.stage.source_path, "KVS")
+                        with working_dir(build_dir):
+                            make()
+                            make("install")
 
             # Build Client
             if "+client" in spec:
-                qmake = Executable(spec["qt-base"].prefix.bin.qmake)
-                build_dir = join_path(self.stage.source_path, "Client/build")
-                os.makedirs(build_dir)
-                with working_dir(build_dir):
-                    qmake("../pbvr_client.pro")
-                    make()
+                with set_env(
+                    SPACK_KVS_DIR=prefix,
+                ):
+                    qmake = Executable(spec["qt-base"].prefix.bin.qmake)
+                    build_dir = join_path(self.stage.source_path, "Client/build")
+                    os.makedirs(build_dir)
+                    with working_dir(build_dir):
+                        qmake("../pbvr_client.pro")
+                        make()
 
-            # Build Sevrer
-            make("-C", "CS_server")
+        # Build Sevrer
+        if "+extended_fileformat" in spec:
+            with set_env(
+                KVS_CPP="g++",
+                SPACK_KVS_DIR=prefix,
+                VTK_VERSION="9.3",
+                VTK_INCLUDE_PATH=str(spec["vtk"].prefix.include) + "/vtk-9.3",
+                VTK_LIB_PATH=str(spec["vtk"].prefix.lib),
+            ):
+                make("-C", "CS_server")
 
     def install(self, spec, prefix):
         mkdirp(prefix.bin)
         install("CS_server/pbvr_server", prefix.bin)
         install("CS_server/Filter/pbvr_filter", prefix.bin)
-        install("CS_server/KVSMLConverter/Example/Release/kvsml-converter", prefix.bin)
 
-        if "+client" in spec:
-            install("Client/build/App/pbvr_client", prefix.bin)
-            src = self.stage.source_path
-            install_tree(os.path.join(src, "Client/App/Shader"), os.path.join(prefix.bin, "Shader"))
-            install_tree(os.path.join(src, "Client/App/Font"), os.path.join(prefix.bin, "Font"))
+        if spec.compiler.name != "fj":
+            install("CS_server/KVSMLConverter/Example/Release/kvsml-converter", prefix.bin)
+
+            if "+client" in spec:
+                install("Client/build/App/pbvr_client", prefix.bin)
+                src = self.stage.source_path
+                install_tree(os.path.join(src, "Client/build/App/Shader"), os.path.join(prefix.bin, "Shader"))
+                install_tree(os.path.join(src, "Client/build/App/Font"), os.path.join(prefix.bin, "Font"))
