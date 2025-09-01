@@ -17,8 +17,8 @@ Spackには公式のSpackと富岳などで使用するための富士通コン�
 インストール時に使用したコンパイラはgcc@8.5.0もしくはfj@4.12.0
 ```
 spack install gcc@8.5.0 # 必要であれば
-git clone https://github.com/CCSEPBVR/spack-pbvr.git # レポジトリのクローン
-spack repo add /path/to/spack-pbvr # Spackにレポジトリを追加
+git clone https://github.com/CCSEPBVR/spack-pbvr-fujitsu.git # レポジトリのクローン
+spack repo add /path/to/spack-pbvr-fujitsu # Spackにレポジトリを追加
 spack install pbvr %gcc@8.5.0 # コンパイラgcc@8.5.0を使ってインストール
 spack install pbvr %fj@4.12.0 # コンパイラfj@4.12.0を使ってインストール 
 ```
