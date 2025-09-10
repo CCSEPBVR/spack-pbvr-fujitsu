@@ -61,9 +61,9 @@ class Pbvr(Package):
     depends_on("mpi", when="+mpi")
     depends_on("qt-base@6.2.4+opengl", when="+client%gcc")
     depends_on("qt-svg-pbvr@6.2.4+widgets", when="+client%gcc")
-    depends_on("vtk@9.3.1~mpi", when="~mpi%gcc")
-    depends_on("vtk@9.3.1+mpi", when="+mpi%gcc")
-    depends_on("freeglut", when="+client%gcc")
+    depends_on("vtk-pbvr@9.3.1~mpi", when="~mpi%gcc")
+    depends_on("vtk-pbvr@9.3.1+mpi", when="+mpi%gcc")
+    depends_on("freeglut", when="%gcc")
 
     patch("kvs-conf.patch", when="~client~extended_fileformat%gcc")
     patch("kvs-extended-fileformat-conf.patch", when="~client+extended_fileformat%gcc")
@@ -93,58 +93,22 @@ class Pbvr(Package):
                     pass
 
     def build(self, spec, prefix):
-        # Workaround for qmake's $$system() not capturing command output correctly.
-        # This issue is caused by a known bug in certain Linux kernel versions.
-        # To avoid it, Qt is built with the '-no-feature-forkfd_pidfd' option to disable
-        # the use of new process management features that rely on pidfd.
-        # Note: Red Hat fixed this kernel issue in version 4.18.0-392 and later.
-        is_rhel8_bug_fixed = False
-        release_str = platform.uname().release
-        match = re.match(r"^(\d+\.\d+\.\d+)-([\d\.]+)\.el8", release_str)
-        if match and not is_rhel8_bug_fixed:
-            base_version = match.group(1)
-            build_number = match.group(2).split(".")[0]
-            full_version = f"{base_version}.{build_number}"
-            if Version(full_version) < Version("4.18.0.392"):
-                raise InstallError(
-                    f"The kernel version of this system is ${full_version}.\n"
-                    "You get an error when running qmake after installing qt-base"
-                    " on Red Hat Enterprise Linux 8 versions older than 8.7.\n"
-                    "You need to fix the package.py file for qt-base,"
-                    " so please refer to the following URL.\n"
-                    "https://github.com/CCSEPBVR/CS-IS-PBVR/wiki/BuildforLinux_JP"
-                )
+        if spec.compiler.name == "gcc":
+            with set_env(
+                KVS_CPP="g++",
+                SPACK_KVS_DIR=prefix,
+                VTK_VERSION="9.3",
+                VTK_INCLUDE_PATH=str(spec["vtk-pbvr"].prefix.include) + "/vtk-9.3",
+                VTK_LIB_PATH=str(spec["vtk-pbvr"].prefix.lib),
+            ):
+                # Build KVS
+                build_dir = join_path(self.stage.source_path, "KVS")
+                with working_dir(build_dir):
+                    make()
+                    make("install")
 
-        if spec.compiler.name != "fj":
-            # Build KVS
-            if "+extended_fileformat" in spec:
-                with set_env(
-                    KVS_CPP="g++",
-                    SPACK_KVS_DIR=prefix,
-                    VTK_VERSION="9.3",
-                    VTK_INCLUDE_PATH=str(spec["vtk"].prefix.include) + "/vtk-9.3",
-                    VTK_LIB_PATH=str(spec["vtk"].prefix.lib),
-                ):
-                    build_dir = join_path(self.stage.source_path, "KVS")
-                    with working_dir(build_dir):
-                        make()
-                        make("install")
-            else:
+                # Build Client
                 if "+client" in spec:
-                    with set_env(
-                        KVS_CPP="g++",
-                        SPACK_KVS_DIR=prefix,
-                    ):
-                        build_dir = join_path(self.stage.source_path, "KVS")
-                        with working_dir(build_dir):
-                            make()
-                            make("install")
-
-            # Build Client
-            if "+client" in spec:
-                with set_env(
-                    SPACK_KVS_DIR=prefix,
-                ):
                     qmake = Executable(spec["qt-base"].prefix.bin.qmake)
                     build_dir = join_path(self.stage.source_path, "Client/build")
                     os.makedirs(build_dir)
@@ -152,23 +116,18 @@ class Pbvr(Package):
                         qmake("../pbvr_client.pro")
                         make()
 
-        # Build Sevrer
-        if "+extended_fileformat" in spec:
-            with set_env(
-                KVS_CPP="g++",
-                SPACK_KVS_DIR=prefix,
-                VTK_VERSION="9.3",
-                VTK_INCLUDE_PATH=str(spec["vtk"].prefix.include) + "/vtk-9.3",
-                VTK_LIB_PATH=str(spec["vtk"].prefix.lib),
-            ):
+                # Build Sevrer
                 make("-C", "CS_server")
+        elif spec.compiler.name == "fj":
+            # Build Server
+            make("-C", "CS_server")
 
     def install(self, spec, prefix):
         mkdirp(prefix.bin)
         install("CS_server/pbvr_server", prefix.bin)
         install("CS_server/Filter/pbvr_filter", prefix.bin)
 
-        if spec.compiler.name != "fj":
+        if spec.compiler.name == "gcc":
             install("CS_server/KVSMLConverter/Example/Release/kvsml-converter", prefix.bin)
 
             if "+client" in spec:
